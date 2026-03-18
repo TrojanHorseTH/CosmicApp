@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cosmic Live Editor Pro</title>
+<style>
+/* GLOBAL */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{height:100vh;display:flex;font-family:'Fira Code',monospace;background:radial-gradient(circle at 30% 20%,#1b2735,#090a0f 80%);color:white;}
+
+/* METEOR */
+.meteor-wrapper{position:fixed;top:-50px;left:-50px;width:50px;height:50px;z-index:10000;animation:shootMeteor 2s ease-out forwards;pointer-events:none;}
+.meteor-core{width:12px;height:12px;background:#fff;border-radius:50%;box-shadow:0 0 10px #fff,0 0 20px #fff,0 0 30px #fffae6;position:absolute;top:50%;left:0;transform:translateY(-50%);}
+.meteor-tail{width:50px;height:4px;background:linear-gradient(to left, rgba(255,255,255,0.8), transparent);position:absolute;top:50%;left:0;transform:translateY(-50%);border-radius:50%;}
+@keyframes shootMeteor{0%{top:-50px;left:-50px;transform:rotate(45deg);opacity:1}100%{top:120vh;left:120vw;transform:rotate(45deg);opacity:0}}
+
+/* ORBIT PLANET */
+.orbit{position:absolute;width:350px;height:350px;border:1px solid rgba(255,255,255,0.05);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);animation:spin 25s linear infinite;z-index:0;}
+.planet{width:14px;height:14px;background:#00ffcc;border-radius:50%;position:absolute;top:-7px;left:50%;transform:translateX(-50%);box-shadow:0 0 15px #00ffcc;}
+@keyframes spin{100%{transform:translate(-50%,-50%) rotate(360deg);}}
+
+/* SATURN */
+.saturn-wrapper{position:fixed;bottom:40px;right:40px;width:160px;height:160px;animation:float 6s ease-in-out infinite;z-index:9999;pointer-events:none;transition:opacity 0.3s ease;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.saturn-ring-back{position:absolute;top:50px;left:-10px;width:180px;height:70px;border-radius:50%;border:6px solid #ffe6b4;transform:rotate(-20deg);z-index:3;clip-path:polygon(0% 50%,100% 50%,100% 100%,0% 100%);}
+.saturn-body{position:absolute;width:130px;height:130px;top:15px;left:15px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fbe7b2,#cfa25e 60%,#9e6f3a);box-shadow:inset -8px -8px 18px rgba(0,0,0,0.7),0 0 60px #ffd278,0 0 120px #ffc864;}
+.saturn-body::before{content:"";position:absolute;width:100%;height:100%;border-radius:50%;background:repeating-linear-gradient(10deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 2px, transparent 2px, transparent 6px);z-index:3;}
+.saturn-ring-front{position:absolute;top:50px;left:-10px;width:180px;height:70px;border-radius:50%;border:6px solid #fff0c8;transform:rotate(-20deg);z-index:1;clip-path:polygon(0% 0%,100% 0%,100% 50%,0% 50%);}
+
+/* PREVIEW */
+#preview{flex:1;border:none;background:#fff;z-index:2;}
+
+/* EDITOR */
+#editor{width:50%;max-width:700px;display:flex;flex-direction:column;background:rgba(15,20,30,0.95);backdrop-filter:blur(10px);border-left:1px solid #111;border-radius:12px 0 0 12px;overflow:hidden;}
+textarea{flex:1;background:transparent;color:#00ffcc;border:none;outline:none;resize:none;padding:20px;font-size:15px;line-height:1.5;}
+.tabs{display:flex;} 
+.tabs button{flex:1;padding:10px;background:#0f141e;border:none;color:#00ffcc;cursor:pointer;} 
+.tabs button.active{background:#1a2332;}
+.controls{display:flex;gap:10px;padding:10px;border-top:1px solid #111;} 
+.controls button{background:#0f141e;border:1px solid #222;color:#00ffcc;padding:6px 10px;cursor:pointer;} 
+.controls button:hover{background:#1a2332;}
+
+/* BEGINNER PANEL TOP-RIGHT */
+#dragPanel{
+    position:fixed;
+    top:10px;
+    right:10px;
+    width:200px;
+    background:rgba(0,0,0,0.8);
+    border:1px solid #00ffcc;
+    padding:10px;
+    display:none;
+    z-index:10000;
+}
+.dragItem{padding:5px;margin:4px;background:#111827;border:1px solid #00ffcc;cursor:grab;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="meteor-wrapper"><div class="meteor-tail"></div><div class="meteor-core"></div></div>
+<div class="orbit"><div class="planet"></div></div>
+<div class="saturn-wrapper"><div class="saturn-ring-back"></div><div class="saturn-body"></div><div class="saturn-ring-front"></div></div>
+
+<iframe id="preview"></iframe>
+
+<div id="editor">
+    <div class="tabs">
+        <button class="tab active" data-tab="html">HTML</button>
+        <button class="tab" data-tab="css">CSS</button>
+        <button class="tab" data-tab="js">JS</button>
+    </div>
+
+    <textarea id="html"></textarea>
+    <textarea id="css" style="display:none;"></textarea>
+    <textarea id="js" style="display:none;"></textarea>
+
+    <div class="controls">
+        <button id="saveBtn">💾 Save</button>
+        <button id="semiBtn">📍 Semi Save</button>
+        <button id="resetBtn">♻ Reset</button>
+        <button id="focusBtn">🧘 Focus</button>
+        <button id="beginnerBtn">🌱 Beginner</button>
+        <button id="dragToggle">🎯 Drag</button>
+        <button id="clearBtn">🗑 Clear</button>
+        <button id="cornerBtn">🟦 Round Corners</button>
+    </div>
+</div>
+
+<!-- BEGINNER DRAG PANEL -->
+<div id="dragPanel">
+    <div class="dragItem" draggable="true" data-code="<div class='item box'>Box</div>">Box</div>
+    <div class="dragItem" draggable="true" data-code="<div class='item text'>Text</div>">Text</div>
+    <div class="dragItem" draggable="true" data-code="<button class='item button'>Button</button>">Button</div>
+    <div class="dragItem" draggable="true" data-code="<div class='item circle'>Circle</div>">Circle</div>
+    <div class="dragItem" draggable="true" data-code="<div class='item square'>Square</div>">Square</div>
+</div>
+
+<script>
+// ELEMENTS
+const htmlEl=document.getElementById("html"),cssEl=document.getElementById("css"),jsEl=document.getElementById("js");
+const preview=document.getElementById("preview"),tabs=document.querySelectorAll(".tab");
+const dragPanel=document.getElementById("dragPanel");
+
+// DEFAULTS
+const DEFAULT={html:"<h1>Hello Cosmic 👋</h1>",css:"body{background:black;color:cyan;text-align:center;}",js:"console.log('Ready 🚀');"};
+htmlEl.value=DEFAULT.html;cssEl.value=DEFAULT.css;jsEl.value=DEFAULT.js;
+
+// RENDER
+let cornerRadius=false,dragMode=false;
+function render(){
+    const doc=preview.contentDocument;
+    doc.open();
+    doc.write(`<style>${cssEl.value}.item{position:absolute;border:1px dashed #00ffcc;padding:5px;cursor:move;${cornerRadius?'border-radius:10px;':''}}</style>${htmlEl.value}<script>
+    let active=null,ox=0,oy=0;
+    document.querySelectorAll('.item').forEach(el=>{el.onmousedown=e=>{active=el;ox=e.offsetX;oy=e.offsetY;}});
+    document.onmousemove=e=>{if(active){active.style.left=(e.pageX-ox)+'px';active.style.top=(e.pageY-oy)+'px';}};
+    document.onmouseup=()=>{active=null;save();}
+    function save(){parent.postMessage([...document.querySelectorAll('.item')].map(e=>e.outerHTML).join('\\n'), '*');}
+    <\/script>`);
+    doc.close();
+}
+render();
+
+// LIVE EDIT
+[htmlEl,cssEl,jsEl].forEach(e=>e.addEventListener("input",render));
+
+// TABS
+tabs.forEach(tab=>tab.onclick=()=>{
+    tabs.forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    htmlEl.style.display=cssEl.style.display=jsEl.style.display="none";
+    document.getElementById(tab.dataset.tab).style.display="block";
+});
+
+// BEGINNER MODE
+let beginner=false;
+document.getElementById("beginnerBtn").onclick=()=>{
+    beginner=!beginner;
+    dragPanel.style.display=beginner?"block":"none";
+};
+
+// DRAG TO PREVIEW
+document.querySelectorAll(".dragItem").forEach(item=>{
+    item.addEventListener("dragstart",e=>e.dataTransfer.setData("text/plain",item.dataset.code));
+});
+
+preview.addEventListener("load",()=>{
+    const doc=preview.contentDocument;
+    doc.addEventListener("dragover",e=>e.preventDefault());
+    doc.addEventListener("drop",e=>{
+        if(!dragMode) return;
+        e.preventDefault();
+        htmlEl.value+=`<div class="item" style="left:${e.pageX}px;top:${e.pageY}px;">${e.dataTransfer.getData("text/plain")}</div>`;
+        render();
+    });
+});
+
+// CONTROLS
+document.getElementById("saveBtn").onclick=()=>{
+    const file=`<!DOCTYPE html><html><head><style>${cssEl.value}</style></head><body>${htmlEl.value}<script>${jsEl.value}<\/script></body></html>`;
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([file],{type:"text/html"}));a.download="project.html";a.click();
+};
+document.getElementById("semiBtn").onclick=()=>{localStorage.setItem("html",htmlEl.value);localStorage.setItem("css",cssEl.value);localStorage.setItem("js",jsEl.value);};
+document.getElementById("resetBtn").onclick=()=>{htmlEl.value=localStorage.getItem("html")||DEFAULT.html;cssEl.value=localStorage.getItem("css")||DEFAULT.css;jsEl.value=localStorage.getItem("js")||DEFAULT.js;render();};
+document.getElementById("clearBtn").onclick=()=>{htmlEl.value="";render();};
+document.getElementById("focusBtn").onclick=()=>document.body.classList.toggle("focus");
+document.getElementById("dragToggle").onclick=()=>dragMode=!dragMode;
+document.getElementById("cornerBtn").onclick=()=>{cornerRadius=!cornerRadius;render();};
+</script>
+
+</body>
+</html>
